@@ -253,36 +253,51 @@ def admin_dashboard():
 @app.route('/admin/register_student', methods=['GET', 'POST'])
 def register_student():
     if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        phone_number = request.form['phone']
-        college = request.form['college']
-        password = request.form['password']
+        name = request.form.get('name')
+        email = request.form.get('email')
+        phone_number = request.form.get('phone')
+        college = request.form.get('college')
+        password = request.form.get('password')
 
-         # Check if the email already exists
+        # Validate fields
+        if not all([name, email, phone_number, college, password]):
+            flash("All fields are required.", "error")
+            return render_template('register_student.html')
+
+        # Check if the email already exists
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-                flash("This email is already registered.", "error")
-                return render_template('register_student.html')
-
+            flash("This email is already registered.", "error")
+            return render_template('register_student.html')
 
         # Add the new student to the database
-        new_user = User(
-            name=name,
-            email=email,
-            phone_number=phone_number,
-            college=college,
-            password=password  # In practice, make sure to hash the password
-        )
-        db.session.add(new_user)
-        db.session.commit()
+        try:
+            new_user = User(
+                name=name,
+                email=email,
+                phone_number=phone_number,
+                college=college,
+                password=password  # You can add hashing here if needed
+            )
+            db.session.add(new_user)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Database error: {e}", "error")
+            return render_template('register_student.html')
 
-# Send registration email
-        subject = "Welcome to Skill Fest!"
-        body = f"Hi {name},\n\nThank you for registering for Skill Fest.\nWe are excited to have you participate!\n\nBest regards,\nThe Skill Fest Team"
-        send_email(subject, [email], body)
+        # Send registration email (wrapped in try/except)
+        try:
+            subject = "Welcome to Skill Fest!"
+            body = f"Hi {name},\n\nThank you for registering for Skill Fest.\nWe are excited to have you participate!\n\nBest regards,\nThe Skill Fest Team"
+            msg = Message(subject, recipients=[email])
+            msg.body = body
+            mail.send(msg)
+        except Exception as e:
+            print(f"Email failed to send: {e}")
+            flash("Student registered but email could not be sent.", "warning")
 
-        return redirect(url_for('manage_users'))  # Redirect to the manage users page
+        return redirect(url_for('manage_users'))
 
     return render_template('register_student.html')
 
