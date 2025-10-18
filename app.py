@@ -13,11 +13,15 @@ app = Flask(__name__)
 # --- Configurations ---
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev_secret")
 
-# MongoDB Atlas connection
-app.config['MONGO_URI'] = os.getenv("MONGO_URI")
+# ✅ Ensure MONGO_URI exists
+mongo_uri = os.getenv("MONGO_URI")
+if not mongo_uri:
+    raise ValueError("❌ MONGO_URI environment variable not found! Please set it in Vercel.")
+
+app.config["MONGO_URI"] = mongo_uri
 mongo = PyMongo(app)
 
-# Mail configuration (use environment variables)
+# --- Mail configuration ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -26,11 +30,11 @@ app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_USERNAME")
 mail = Mail(app)
 
-# Flask-Login setup
+# --- Flask-Login setup ---
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# MongoDB Collections
+# --- MongoDB Collections ---
 users = mongo.db.users
 questions = mongo.db.questions
 attempts = mongo.db.attempts
@@ -60,7 +64,7 @@ def send_email(subject, recipients, body):
         msg.body = body
         mail.send(msg)
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f"⚠️ Failed to send email: {e}")
 
 
 # --- Routes ---
@@ -68,8 +72,6 @@ def send_email(subject, recipients, body):
 def index():
     return render_template('index.html')
 
-
-# --- User Login ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -86,24 +88,18 @@ def login():
 
     return render_template('login.html')
 
-
-# --- Logout ---
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
-
-# --- Terms Page ---
 @app.route('/terms', methods=['GET', 'POST'])
 def terms():
     if request.method == 'POST':
         return redirect(url_for('start_quiz'))
     return render_template('terms.html')
 
-
-# --- Quiz Start ---
 @app.route('/quiz/start', methods=['GET', 'POST'])
 @login_required
 def start_quiz():
@@ -161,14 +157,10 @@ def start_quiz():
         current_index=current_index + 1
     )
 
-
-# --- Thank You Page ---
 @app.route('/thankyou')
 def thankyou():
     return render_template('thankyou.html')
 
-
-# --- Admin Login ---
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -179,8 +171,6 @@ def admin_login():
         flash('Invalid credentials')
     return render_template('admin_login.html')
 
-
-# --- Admin Dashboard ---
 @app.route('/admin/dashboard')
 def admin_dashboard():
     total_users = users.count_documents({})
@@ -193,8 +183,6 @@ def admin_dashboard():
         total_results=total_results
     )
 
-
-# --- Register Student ---
 @app.route('/admin/register_student', methods=['GET', 'POST'])
 def register_student():
     if request.method == 'POST':
@@ -230,20 +218,15 @@ def register_student():
 
     return render_template('register_student.html')
 
-
-# --- Manage Users ---
 @app.route('/admin/users')
 def manage_users():
     all_users = list(users.find())
     return render_template('manage_users.html', users=all_users)
 
-
-# --- Manage Questions ---
 @app.route('/admin/manage_questions')
 def manage_questions():
     all_questions = list(questions.find())
     return render_template('manage_questions.html', questions=all_questions)
-
 
 @app.route('/admin/add_question', methods=['GET', 'POST'])
 def add_question():
@@ -260,11 +243,10 @@ def add_question():
         return redirect(url_for('manage_questions'))
     return render_template('add_question.html')
 
-
 @app.route('/admin/edit_question/<id>', methods=['GET', 'POST'])
 def edit_question(id):
     question = questions.find_one({"_id": ObjectId(id)})
-    if request.method == 'POST':
+    if request.method == ['POST']:
         updated = {
             "question_text": request.form['question_text'],
             "option_1": request.form['option_1'],
@@ -277,12 +259,10 @@ def edit_question(id):
         return redirect(url_for('manage_questions'))
     return render_template('edit_question.html', question=question)
 
-
 @app.route('/admin/delete_question/<id>')
 def delete_question(id):
     questions.delete_one({"_id": ObjectId(id)})
     return redirect(url_for('manage_questions'))
-
 
 @app.route('/admin/manage_results')
 def manage_results():
@@ -291,5 +271,5 @@ def manage_results():
 
 
 # --- Run locally ---
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
