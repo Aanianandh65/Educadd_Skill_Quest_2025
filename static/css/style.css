@@ -29,6 +29,7 @@ header .logo, header .educadd-logo {
     align-items: center;
 }
 
+
 header .logo img, header .educadd-logo img {
     width: 80px;
     height: auto;
@@ -36,10 +37,9 @@ header .logo img, header .educadd-logo img {
 }
 
 header h1 {
-    font-size: 20px;
+    font-size: 30px;
     margin: 0;
 }
-
 /* Footer Styles */
 footer {
     background-color: #003366;
@@ -325,10 +325,9 @@ form input, form select {
 }
 
 .logo-container img {
-    width: 120px;
+    width: 150px;
     height: auto;
-    border-radius: 50%;
-    border: 3px solid #fbbd08;
+   
 }
 
 /* Page Specific: Quiz Page */
